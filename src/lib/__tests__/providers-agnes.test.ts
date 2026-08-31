@@ -32,11 +32,22 @@ describe('AgnesProvider', () => {
     })
   })
 
+  it('migrates the retired Agnes Image 2.1 model to Image 2.5 Flash', () => {
+    const migrated = migrateSettings({
+      providers: { agnes: { enabled: true, apiKey: 'key' } },
+      defaultImageModel: 'agnes-image-2.1-flash',
+      customModels: [{ id: 'm', provider: 'agnes', modelId: 'agnes-image-2.1-flash', name: 'Agnes Image 2.1 Flash', mediaType: 'image' }],
+    } as unknown as SettingsState)
+
+    expect(migrated.defaultImageModel).toBe('agnes-image-2.5-flash')
+    expect(migrated.customModels?.[0]).toMatchObject({ modelId: 'agnes-image-2.5-flash', name: 'Agnes Image 2.5 Flash' })
+  })
+
   it('is registered and publishes only the selected current models', async () => {
     const provider = createProvider(config)
     expect(provider).toBeInstanceOf(AgnesProvider)
     expect((await provider.listModels()).map((model) => model.id)).toEqual([
-      'agnes-image-2.1-flash',
+      'agnes-image-2.5-flash',
       'agnes-video-2.5-flash',
       'agnes-video-2.5',
     ])
@@ -49,7 +60,7 @@ describe('AgnesProvider', () => {
       data: [{ url: 'https://cdn.example/image.png' }],
     })
     const result = await provider.generateImage({
-      modelId: 'agnes-image-2.1-flash',
+      modelId: 'agnes-image-2.5-flash',
       mode: 'text-to-image',
       prompt: 'product',
       width: 1024,
@@ -59,7 +70,7 @@ describe('AgnesProvider', () => {
     expect(request).toHaveBeenCalledWith('/v1/images/generations', expect.objectContaining({
       method: 'POST',
       body: {
-        model: 'agnes-image-2.1-flash',
+        model: 'agnes-image-2.5-flash',
         prompt: 'product',
         size: '1K',
         ratio: '1:1',
@@ -72,7 +83,7 @@ describe('AgnesProvider', () => {
     const provider = new AgnesProvider(config)
     const request = vi.spyOn(internal(provider), 'request').mockResolvedValue({ data: [{ url: 'https://cdn.example/edit.png' }] })
     await provider.generateImage({
-      modelId: 'agnes-image-2.1-flash',
+      modelId: 'agnes-image-2.5-flash',
       mode: 'image-to-image',
       prompt: 'edit',
       width: 1080,
@@ -94,7 +105,7 @@ describe('AgnesProvider', () => {
       .mockResolvedValueOnce({ data: [{ url: 'https://cdn.example/one.png' }] })
       .mockRejectedValueOnce(new ProviderError('rate limited', 'API_ERROR', 'agnes', 429))
     const result = await provider.generateImage({
-      modelId: 'agnes-image-2.1-flash',
+      modelId: 'agnes-image-2.5-flash',
       mode: 'text-to-image',
       prompt: 'x',
       count: 2,
@@ -108,7 +119,7 @@ describe('AgnesProvider', () => {
     vi.spyOn(internal(provider), 'request').mockResolvedValue({ data: [] })
 
     await expect(provider.generateImage({
-      modelId: 'agnes-image-2.1-flash',
+      modelId: 'agnes-image-2.5-flash',
       mode: 'text-to-image',
       prompt: 'x',
       count: 2,

@@ -41,7 +41,7 @@ export const settings: NamespaceMessages = {
     providerOpenaiDesc: "OpenAI 官方平台，支持 gpt-image-2、gpt-image-1.5 图片生成与图生图编辑",
     providerOpenaiTip: "2026 旗舰 gpt-image-2，9:16 竖屏直出 + 商品保真图生图（暂不支持视频）",
     providerAgnesDesc: "Agnes AI 多模态生成平台，支持图片与带原生音频的视频模型",
-    providerAgnesTip: "Image 2.1 Flash + Video 2.5，视频参考素材需使用公网 URL",
+    providerAgnesTip: "Image 2.5 Flash + Video 2.5，视频参考素材需使用公网 URL",
 
     // AI 平台卡片
     providerEnabled: "已启用",
@@ -238,7 +238,7 @@ export const settings: NamespaceMessages = {
     providerOpenaiDesc: "OpenAI's official platform — gpt-image-2 and gpt-image-1.5 image generation and editing",
     providerOpenaiTip: "2026 flagship gpt-image-2: native 9:16 + product-faithful editing (no video yet)",
     providerAgnesDesc: "Agnes AI multimodal generation platform for images and native-audio video",
-    providerAgnesTip: "Image 2.1 Flash + Video 2.5; video reference media must use public URLs",
+    providerAgnesTip: "Image 2.5 Flash + Video 2.5; video reference media must use public URLs",
 
     // AI platform card
     providerEnabled: "Enabled",

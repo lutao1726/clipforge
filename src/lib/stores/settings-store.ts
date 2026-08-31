@@ -115,6 +115,8 @@ export interface SettingsState {
 /** Pollinations 的新端点（旧的 text.pollinations.ai 免 Key 接口已停用） */
 const POLLINATIONS_BASE_URL = "https://gen.pollinations.ai/v1";
 const AGNES_BASE_URL = "https://apihub.agnes-ai.com/v1";
+const AGNES_IMAGE_MODEL = "agnes-image-2.5-flash";
+const LEGACY_AGNES_IMAGE_MODEL = "agnes-image-2.1-flash";
 
 // localStorage remains the fast client-side cache; this debounced mirror keeps a self-hosted
 // installation's provider credentials available after the browser origin or server process changes.
@@ -233,6 +235,17 @@ export function migrateSettings(state: SettingsState): SettingsState {
       ...(state.providers ?? {}),
       agnes: { enabled: false, apiKey: "", baseUrl: AGNES_BASE_URL },
     };
+  }
+  // Agnes replaced Image 2.1 Flash with the current Image 2.5 Flash model.
+  if (state.defaultImageModel === LEGACY_AGNES_IMAGE_MODEL) {
+    state.defaultImageModel = AGNES_IMAGE_MODEL;
+  }
+  if (Array.isArray(state.customModels)) {
+    state.customModels = state.customModels.map((model) =>
+      model.provider === "agnes" && model.modelId === LEGACY_AGNES_IMAGE_MODEL
+        ? { ...model, modelId: AGNES_IMAGE_MODEL, ...(model.name === "Agnes Image 2.1 Flash" ? { name: "Agnes Image 2.5 Flash" } : {}) }
+        : model
+    );
   }
   const llm = state?.llm;
   if (llm?.baseUrl) {
@@ -386,7 +399,8 @@ export const useSettingsStore = create<SettingsState>()(
       // v5：Atlas 一键接入曾把「素材网关」/api/v1 写进 LLM 地址，导致写脚本必 404（issue #24），
       // 迁到 OpenAI 兼容的聊天网关 /v1。
       // v6：为旧设置补齐 Agnes Provider；不启用、不预填 Key，只写入官方 Base URL。
-      version: 6,
+      // v7：Agnes 图片模型从 Image 2.1 Flash 切换到 Image 2.5 Flash。
+      version: 7,
       migrate: (persisted) => migrateSettings(persisted as SettingsState),
       onRehydrateStorage: () => {
         // Run after the local cache has been merged so local edits can be preserved and mirrored.

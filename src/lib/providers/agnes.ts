@@ -18,7 +18,7 @@ import type {
   VideoResult,
 } from './types'
 
-const IMAGE_MODEL = 'agnes-image-2.1-flash'
+const IMAGE_MODEL = 'agnes-image-2.5-flash'
 const VIDEO_MODELS = new Set(['agnes-video-2.5', 'agnes-video-2.5-flash'])
 
 interface AgnesImageResponse {
@@ -228,7 +228,7 @@ export class AgnesProvider extends BaseProvider {
     const models: Model[] = [
       {
         id: IMAGE_MODEL,
-        name: 'Agnes Image 2.1 Flash',
+        name: 'Agnes Image 2.5 Flash',
         description: '文生图、图生图和多图合成，支持复杂构图与高信息密度画面',
         modes: ['text-to-image', 'image-to-image'],
         mediaType: 'image',
