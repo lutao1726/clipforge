@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { useT, useLocale } from "@/lib/i18n";
 import { friendlyError } from "@/lib/friendly-error";
+import { randomUuid } from "@/lib/uuid";
 
 // product category options (label changed to i18n key, converted via t() at render time)
 const categoryOptions = [
@@ -377,7 +378,7 @@ export default function NewProjectPage() {
         .slice(0, remaining)
         .filter((f) => f.type.startsWith("image/"))
         .map((file) => ({
-          id: crypto.randomUUID(),
+            id: randomUuid(),
           url: URL.createObjectURL(file),
           file,
         }));
@@ -428,7 +429,7 @@ export default function NewProjectPage() {
       // revoke old preview URLs to avoid memory leaks
       setImages((prev) => {
         prev.forEach((img) => URL.revokeObjectURL(img.url));
-        return [{ id: crypto.randomUUID(), url: URL.createObjectURL(file), file }];
+        return [{ id: randomUuid(), url: URL.createObjectURL(file), file }];
       });
     } catch {
       // fetching the example image is non-fatal; the text fields are already filled and the user can upload manually
@@ -448,7 +449,7 @@ export default function NewProjectPage() {
         const res = await fetch(src);
         const blob = await res.blob();
         const file = new File([blob], `product-${i}.png`, { type: blob.type || "image/png" });
-        files.push({ id: crypto.randomUUID(), url: URL.createObjectURL(file), file });
+          files.push({ id: randomUuid(), url: URL.createObjectURL(file), file });
       } catch {
         // non-fatal if the image cannot be fetched
       }

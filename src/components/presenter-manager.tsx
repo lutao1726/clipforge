@@ -12,6 +12,7 @@ import { useT } from "@/lib/i18n";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import { useCharacterStore, type Character } from "@/lib/stores/project-store";
 import { resolveDefaultModelTarget, buildImageOptions } from "@/lib/gen-params";
+import { randomUuid } from "@/lib/uuid";
 
 /* eslint-disable @next/next/no-img-element -- sheet previews are local uploads served by our own API */
 
@@ -99,7 +100,7 @@ export function PresenterManager() {
       });
     } else {
       addCharacter({
-        id: crypto.randomUUID(),
+          id: randomUuid(),
         name: form.name,
         description: form.description,
         appearance: form.appearance,

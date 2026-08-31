@@ -158,6 +158,19 @@ const AI_PROVIDERS = [
     ),
     iconBg: "from-teal-600 to-green-700",
   },
+  {
+    key: "agnes",
+    name: "Agnes AI",
+    descKey: "providerAgnesDesc",
+    tipKey: "providerAgnesTip",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3 4 20h16L12 3Z" />
+        <path d="m8.5 13 7 0" />
+      </svg>
+    ),
+    iconBg: "from-indigo-500 to-violet-700",
+  },
 ];
 
 // Map Chinese vendor names by key to i18n display names (English users would otherwise see hard-coded Chinese like "火山引擎/阿里百炼/硅基流动").

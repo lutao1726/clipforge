@@ -146,7 +146,7 @@ export async function renderTranscriptEdit(input: RenderTranscriptEditInput): Pr
     duration,
   });
   await writeFile(filterPath, invocation.filterComplex, "utf8");
-  const args = [...invocation.inputArgs, "-filter_complex_script", filterPath, ...invocation.outputArgs];
+  const args = [...invocation.inputArgs, "-/filter_complex", filterPath, ...invocation.outputArgs];
   try {
     await withComposeSlot(() => execFileAsync(ffmpegBin(), args, { timeout: TRANSCRIPT_RENDER_TIMEOUT_MS, maxBuffer: 50 * 1024 * 1024 }));
     if (!(await validateMediaFile(input.outputPath, "video"))) throw new Error("剪辑结果校验失败，请重试");

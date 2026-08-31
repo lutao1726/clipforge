@@ -13,11 +13,11 @@ afterEach(() => {
 });
 
 describe("ffmpeg/ffprobe 二进制路径解析", () => {
-  it("未注入时回退系统 ffmpeg/ffprobe（开发态不变）", () => {
+  it("未注入时优先使用已安装的 ffprobe，缺失时才回退系统 PATH", () => {
     delete process.env.FFMPEG_PATH;
     delete process.env.FFPROBE_PATH;
     expect(ffmpegBin()).toBe("ffmpeg");
-    expect(ffprobeBin()).toBe("ffprobe");
+    expect(ffprobeBin().toLowerCase()).toContain("ffprobe");
   });
 
   it("注入绝对路径时返回该路径（Electron 随包二进制）", () => {

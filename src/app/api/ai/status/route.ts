@@ -5,7 +5,7 @@ import { apiError, errText } from "@/lib/api-error";
 // Query AI task status (image/video generation is asynchronous)
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { provider: providerName, taskId, apiKey, baseUrl } = body;
+  const { provider: providerName, taskId, model, apiKey, baseUrl } = body;
 
   if (!providerName || !taskId) {
     return apiError(req, "缺少必要参数", "Missing required parameters");
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const provider = createProvider({ name: providerName, apiKey, baseUrl });
-    const status = await provider.getTaskStatus(taskId);
+    const status = await provider.getTaskStatus(taskId, { modelId: model });
     return NextResponse.json(status);
   } catch (error) {
     console.error("查询任务状态失败:", error);

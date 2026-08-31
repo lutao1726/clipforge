@@ -19,6 +19,19 @@ import { getVideoParamSpec } from "@/lib/providers/atlas-video-params";
 export const FILM_MIN_SECONDS = 4;
 export const FILM_MAX_SECONDS = 30;
 
+/**
+ * Resolve the model used by the one-call storyboard film flow.
+ * Agnes exposes a flat model id rather than the Atlas/Seedance
+ * `reference-to-video` suffix, so never forward that generic fallback to it.
+ */
+export function resolveStoryboardFilmModel(provider?: string, configuredModel?: string): string {
+  if (provider?.toLowerCase() === "agnes") return "agnes-video-2.5";
+  const model = configuredModel?.trim();
+  return model && model.includes("/reference-to-video")
+    ? model
+    : "bytedance/seedance-2.5/reference-to-video";
+}
+
 /** Shot-type labels for segment lines, zh/en */
 const SHOT_TYPE_LABELS: Record<string, { zh: string; en: string }> = {
   hook: { zh: "钩子镜", en: "hook shot" },

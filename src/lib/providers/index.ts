@@ -11,6 +11,7 @@ import { ReplicateProvider } from './replicate'
 import { AlibabaProvider } from './alibaba'
 import { SiliconFlowProvider } from './siliconflow'
 import { OpenAIProvider } from './openai'
+import { AgnesProvider } from './agnes'
 
 // ==================== Provider 注册表 ====================
 
@@ -73,6 +74,13 @@ registerProvider({
   displayName: 'OpenAI',
   description: 'OpenAI 官方平台，支持 gpt-image-2 / gpt-image-1.5 图片生成与图生图编辑',
   factory: (config) => new OpenAIProvider(config),
+})
+
+registerProvider({
+  name: 'agnes',
+  displayName: 'Agnes AI',
+  description: 'Agnes AI 多模态平台，支持图片和视频生成',
+  factory: (config) => new AgnesProvider(config),
 })
 
 // ==================== 工厂函数 ====================
@@ -159,3 +167,4 @@ export { VolcEngineProvider } from './volcengine'
 export { AlibabaProvider } from './alibaba'
 export { SiliconFlowProvider } from './siliconflow'
 export { OpenAIProvider } from './openai'
+export { AgnesProvider } from './agnes'

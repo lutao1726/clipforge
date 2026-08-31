@@ -20,6 +20,7 @@ import { ATLAS_KEYS_URL } from "@/lib/atlas-onekey";
 import { formatRelativeTime } from "@/lib/relative-time";
 import { classifyTrendTitle, pickDailyTrend, TREND_CATEGORY_IDS } from "@/lib/trends";
 import type { TrendTopic, TrendCategoryId } from "@/lib/trends";
+import { randomUuid } from "@/lib/uuid";
 
 /** How many trend chips are shown at once; "shuffle" pages through the full board. */
 const TRENDS_PAGE_SIZE = 8;
@@ -146,7 +147,7 @@ export default function StartPage() {
           const res = await fetch(src);
           const blob = await res.blob();
           const file = new File([blob], `product-${i}.png`, { type: blob.type || "image/png" });
-          files.push({ id: crypto.randomUUID(), url: URL.createObjectURL(file), file });
+          files.push({ id: randomUuid(), url: URL.createObjectURL(file), file });
         } catch {
           /* non-fatal per image */
         }
@@ -290,7 +291,7 @@ export default function StartPage() {
       const next = Array.from(files)
         .slice(0, remaining)
         .filter((f) => f.type.startsWith("image/"))
-        .map((file) => ({ id: crypto.randomUUID(), url: URL.createObjectURL(file), file }));
+        .map((file) => ({ id: randomUuid(), url: URL.createObjectURL(file), file }));
       return [...prev, ...next];
     });
   }, []);
@@ -313,7 +314,7 @@ export default function StartPage() {
       const file = new File([blob], `${ex.id}.png`, { type: blob.type || "image/png" });
       setImages((prev) => {
         prev.forEach((i) => URL.revokeObjectURL(i.url));
-        return [{ id: crypto.randomUUID(), url: URL.createObjectURL(file), file }];
+        return [{ id: randomUuid(), url: URL.createObjectURL(file), file }];
       });
     } catch {
       /* image fetch failure is fine; the text fields are already filled */

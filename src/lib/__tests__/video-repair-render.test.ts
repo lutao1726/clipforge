@@ -23,6 +23,7 @@ describe("video repair rendering", () => {
       window: { start: 2, end: 4 }, contentId: "project:repair",
     });
     expect(invocation.filterComplex).toContain("[vbefore][vrepair][vafter]concat=n=3:v=1:a=0[vout]");
+    expect(invocation.args).toContain("-/filter_complex");
     expect(invocation.args).toEqual(expect.arrayContaining(["-map", "0:a:0"]));
     expect(invocation.args).not.toContain("1:a:0");
   });

@@ -22,6 +22,7 @@ import {
   type CustomModel,
   type GenMediaType,
 } from "@/lib/gen-params";
+import { randomUuid } from "@/lib/uuid";
 
 // platforms that support custom model attachment (keys match settings.providers)
 const PROVIDER_OPTIONS: { value: string; label: string }[] = [
@@ -31,6 +32,7 @@ const PROVIDER_OPTIONS: { value: string; label: string }[] = [
   { value: "volcengine", label: "火山引擎" },
   { value: "alibaba", label: "阿里百炼" },
   { value: "siliconflow", label: "硅基流动" },
+  { value: "agnes", label: "Agnes AI" },
 ];
 
 const labelOf = (opts: { value: string; label: string }[], v: string) =>
@@ -104,7 +106,7 @@ export function GenerationSettings() {
   const handleAdd = () => {
     if (!canAdd) return;
     const cm: CustomModel = {
-      id: crypto.randomUUID(),
+      id: randomUuid(),
       provider: form.provider,
       modelId: form.modelId.trim(),
       name: form.name.trim() || form.modelId.trim(),

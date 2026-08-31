@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { randomUuid } from "@/lib/uuid";
 
 // brand configuration
 export interface BrandConfig {
@@ -30,7 +31,7 @@ export const useBrandStore = create<BrandState>()(
   persist(
     (set) => ({
       brand: {
-        id: crypto.randomUUID(),
+        id: randomUuid(),
         name: "我的店铺",
         primaryColor: "#6366f1",
         secondaryColor: "#8b5cf6",

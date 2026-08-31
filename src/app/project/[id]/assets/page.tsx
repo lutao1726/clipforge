@@ -46,6 +46,7 @@ import {
   type CreativeIntent,
   type VisualBible,
 } from "@/lib/production-system";
+import { resolveStoryboardFilmModel } from "@/lib/storyboard-film";
 
 // shot type labels (label changed to i18n key in the assets namespace, resolved per locale)
 const shotTypeLabels: Record<Shot["type"], { key: string; color: string }> = {
@@ -515,6 +516,7 @@ export default function AssetsPage() {
             apiKey: prov.apiKey,
             baseUrl: prov.baseUrl,
             taskId: task.taskId,
+            model: task.model,
             wait: true,
           }),
         });
@@ -915,10 +917,7 @@ export default function AssetsPage() {
         body: JSON.stringify({
           scriptId,
           provider: videoModelTarget.provider,
-          // an explicitly configured reference-to-video model wins; anything else upgrades to the 2.5 film default
-          model: videoModelTarget.model.includes("/reference-to-video")
-            ? videoModelTarget.model
-            : "bytedance/seedance-2.5/reference-to-video",
+          model: resolveStoryboardFilmModel(videoModelTarget.provider, videoModelTarget.model),
           apiKey: videoModelTarget.apiKey,
           baseUrl: videoModelTarget.baseUrl,
           // presenter sheet leads reference_images as the identity anchor (@Image1)
@@ -1265,6 +1264,11 @@ export default function AssetsPage() {
             chainMode={chainMode}
             audioEnabled={videoModelTarget.supportsAudio === true}
             referenceImageCount={Number(Boolean(presenterSheet)) + Number(Boolean(productSafe && productImages[0]))}
+            mediaUrls={[
+              presenterSheet,
+              ...(productSafe ? productImages : []),
+              ...assets.flatMap((asset) => [asset.keyframeUrl, asset.lastFrameUrl]),
+            ].filter((url): url is string => Boolean(url))}
           />
         )}
 

@@ -39,3 +39,18 @@ export async function toRemoteUsableImage(ref: string | undefined): Promise<stri
     return ref;
   }
 }
+
+/**
+ * Convert a local upload route to an externally reachable URL.
+ * Some providers (notably Agnes video) reject both Data URI and local paths,
+ * so they must receive the public reverse-proxy origin instead.
+ */
+export function toPublicUsableImage(ref: string | undefined, publicOrigin: string | undefined): string | undefined {
+  if (!ref) return undefined;
+  if (/^(?:https?:|data:)/i.test(ref) || !ref.startsWith("/api/files/") || !publicOrigin) return ref;
+  try {
+    return new URL(ref, publicOrigin.replace(/\/+$/, "") + "/").toString();
+  } catch {
+    return ref;
+  }
+}

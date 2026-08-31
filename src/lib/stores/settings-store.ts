@@ -16,6 +16,7 @@ import {
   productionProfilePatch,
   type ProductionProfileId,
 } from "@/lib/production-profiles";
+import { randomUuid } from "@/lib/uuid";
 
 // AI Provider 配置
 export interface ProviderSetting {
@@ -113,6 +114,103 @@ export interface SettingsState {
 
 /** Pollinations 的新端点（旧的 text.pollinations.ai 免 Key 接口已停用） */
 const POLLINATIONS_BASE_URL = "https://gen.pollinations.ai/v1";
+const AGNES_BASE_URL = "https://apihub.agnes-ai.com/v1";
+
+// localStorage remains the fast client-side cache; this debounced mirror keeps a self-hosted
+// installation's provider credentials available after the browser origin or server process changes.
+let providerSyncTimer: ReturnType<typeof setTimeout> | null = null;
+const SETTINGS_TOKEN_KEY = "clipforge-settings-token";
+
+function clientSettingsToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    let token = window.localStorage.getItem(SETTINGS_TOKEN_KEY);
+    if (!token) {
+      token = randomUuid();
+      window.localStorage.setItem(SETTINGS_TOKEN_KEY, token);
+    }
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+function queueProviderSync(providers: SettingsState["providers"]): void {
+  if (typeof window === "undefined") return;
+  const token = clientSettingsToken();
+  if (!token) return;
+  if (providerSyncTimer) clearTimeout(providerSyncTimer);
+  providerSyncTimer = setTimeout(() => {
+    providerSyncTimer = null;
+    void fetch("/api/settings/providers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-ClipForge-Settings-Token": token },
+      body: JSON.stringify({ providers }),
+    }).catch(() => {
+      // The local cache is still authoritative while the server is unavailable.
+    });
+  }, 350);
+}
+
+function isConfiguredProvider(name: string, setting: ProviderSetting | undefined): boolean {
+  if (!setting) return false;
+  // Agnes carries its official endpoint in the default state; that endpoint alone is not a user setting.
+  const hasCustomBaseUrl = Boolean(setting.baseUrl && !(name === "agnes" && setting.baseUrl === AGNES_BASE_URL));
+  return Boolean(setting.apiKey || setting.enabled || hasCustomBaseUrl);
+}
+
+async function hydrateProvidersFromServer(): Promise<void> {
+  if (typeof window === "undefined") return;
+  const token = clientSettingsToken();
+  if (!token) return;
+  try {
+    const response = await fetch("/api/settings/providers", {
+      cache: "no-store",
+      headers: { "X-ClipForge-Settings-Token": token },
+    });
+    if (!response.ok) {
+      // Upgrade path for settings.json files created before the installation token was added.
+      if (response.status === 401) {
+        const local = useSettingsStore.getState().providers;
+        if (Object.entries(local).some(([name, setting]) => isConfiguredProvider(name, setting))) {
+          queueProviderSync(local);
+        }
+      }
+      return;
+    }
+    const body = (await response.json()) as { providers?: Record<string, ProviderSetting> };
+    if (!body.providers || typeof body.providers !== "object") return;
+
+    const current = useSettingsStore.getState().providers;
+    const merged: Record<string, ProviderSetting> = { ...current };
+    let changed = false;
+    let localNeedsUpload = false;
+    const names = new Set([...Object.keys(current), ...Object.keys(body.providers)]);
+
+    for (const name of names) {
+      const local = current[name];
+      const remote = body.providers[name];
+      if (!remote) {
+        if (isConfiguredProvider(name, local)) localNeedsUpload = true;
+        continue;
+      }
+      const localConfigured = isConfiguredProvider(name, local);
+      const remoteConfigured = isConfiguredProvider(name, remote);
+      if (!localConfigured && remoteConfigured) {
+        merged[name] = remote;
+        changed = true;
+      } else if (localConfigured && JSON.stringify(local) !== JSON.stringify(remote)) {
+        // A locally edited value wins; mirror it back to the server after hydration.
+        localNeedsUpload = true;
+      }
+    }
+
+    if (changed) useSettingsStore.setState({ providers: merged });
+    if (localNeedsUpload) queueProviderSync(changed ? merged : current);
+  } catch {
+    // Optional server persistence must never block the settings page.
+  }
+}
 
 /**
  * 持久化设置的版本迁移（纯函数，可单测）。
@@ -130,6 +228,12 @@ const POLLINATIONS_BASE_URL = "https://gen.pollinations.ai/v1";
  * 只监听 127.0.0.1，用户会看到一个无从排查的"连不上"（issue #19 追问）。同端口同机，改写无副作用。
  */
 export function migrateSettings(state: SettingsState): SettingsState {
+  if (!state.providers?.agnes) {
+    state.providers = {
+      ...(state.providers ?? {}),
+      agnes: { enabled: false, apiKey: "", baseUrl: AGNES_BASE_URL },
+    };
+  }
   const llm = state?.llm;
   if (llm?.baseUrl) {
     const fixes: Array<{ hostRe: RegExp; from: string; to: string }> = [
@@ -176,6 +280,7 @@ export const useSettingsStore = create<SettingsState>()(
         alibaba: { enabled: false, apiKey: "" },
         siliconflow: { enabled: false, apiKey: "" },
         openai: { enabled: false, apiKey: "" },
+        agnes: { enabled: false, apiKey: "", baseUrl: AGNES_BASE_URL },
       },
       llm: {
         provider: "",
@@ -214,9 +319,11 @@ export const useSettingsStore = create<SettingsState>()(
       // 自动判定应用：保持 source=auto，跟随系统语言
       applyAutoLocale: (locale) => set({ locale }),
       setProvider: (name, setting) =>
-        set((state) => ({
-          providers: { ...state.providers, [name]: setting },
-        })),
+        set((state) => {
+          const providers = { ...state.providers, [name]: setting };
+          queueProviderSync(providers);
+          return { providers };
+        }),
       setLLM: (llm) => set({ llm }),
       setTTS: (tts) => set({ tts }),
       setDefaultImageModel: (model) => set({ defaultImageModel: model }),
@@ -244,6 +351,11 @@ export const useSettingsStore = create<SettingsState>()(
             image: state.defaultImageModel,
             video: state.defaultVideoModel,
           });
+          const providers = {
+            ...state.providers,
+            "atlas-cloud": { ...state.providers["atlas-cloud"], enabled: true, apiKey: key },
+          };
+          queueProviderSync(providers);
           return {
             llm: {
               provider: "Atlas Cloud",
@@ -253,10 +365,7 @@ export const useSettingsStore = create<SettingsState>()(
               model: ATLAS_ONEKEY_MODELS.llm,
               visionModel: ATLAS_ONEKEY_MODELS.vision,
             },
-            providers: {
-              ...state.providers,
-              "atlas-cloud": { ...state.providers["atlas-cloud"], enabled: true, apiKey: key },
-            },
+            providers,
             defaultImageModel: def.image,
             defaultVideoModel: def.video,
             // 配音：之前没开过才默认接 Atlas TTS（复用同一个 Key），已配则保持不动
@@ -276,8 +385,15 @@ export const useSettingsStore = create<SettingsState>()(
       // v4：补充面向创作目标的生产方案；旧设置迁移到兼顾质量与成本的 balanced。
       // v5：Atlas 一键接入曾把「素材网关」/api/v1 写进 LLM 地址，导致写脚本必 404（issue #24），
       // 迁到 OpenAI 兼容的聊天网关 /v1。
-      version: 5,
+      // v6：为旧设置补齐 Agnes Provider；不启用、不预填 Key，只写入官方 Base URL。
+      version: 6,
       migrate: (persisted) => migrateSettings(persisted as SettingsState),
+      onRehydrateStorage: () => {
+        // Run after the local cache has been merged so local edits can be preserved and mirrored.
+        return () => {
+          void hydrateProvidersFromServer();
+        };
+      },
     }
   )
 );

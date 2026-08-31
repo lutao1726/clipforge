@@ -14,5 +14,7 @@ const nextConfig: NextConfig = {
     "/**": ["./.git/**", "./.github/**", "./data/**", "./docs/**", "./tasks/**", "./release/**", "./integrations/**", "./e2e/**", "./remotion/**"],
   },
 };
-
+module.exports = {
+  allowedDevOrigins: ['ai.lutao1726.top', '127.0.0.1','192.168.9.75'],
+}
 export default nextConfig;

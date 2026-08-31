@@ -49,6 +49,54 @@ describe("video model capabilities", () => {
     });
   });
 
+  it("normalizes Agnes 2.5 and exposes the Flash reference limits", () => {
+    expect(getVideoModelCapabilities("agnes-video-2.5", true, "agnes")).toMatchObject({
+      confidence: "known",
+      textToVideo: true,
+      imageToVideo: true,
+      referenceImages: true,
+      referenceVideo: true,
+      referenceAudio: true,
+      lastFrame: true,
+      nativeAudio: true,
+      resolutionValues: ["720p"],
+    });
+    expect(getVideoModelCapabilities("agnes-video-2.5-flash", true, "agnes")).toMatchObject({
+      referenceVideo: false,
+      maxReferenceImages: 5,
+    });
+  });
+
+  it("previews Agnes duration and forced 720p mapping", () => {
+    const result = preflightVideoGeneration({
+      modelId: "agnes-video-2.5-flash",
+      provider: "agnes",
+      duration: 15,
+      resolution: "1080p",
+      aspectRatio: "9:16",
+      chainMode: "pin",
+      referenceImageCount: 6,
+    });
+    expect(result.adjustments).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: "duration", effective: 12 }),
+      expect.objectContaining({ field: "resolution", effective: "720p" }),
+    ]));
+    expect(result.warnings).toContain("reference-images-trimmed");
+  });
+
+  it("warns Agnes users about local keyframes before submission", () => {
+    const result = preflightVideoGeneration({
+      modelId: "agnes-video-2.5",
+      provider: "agnes",
+      resolution: "720p",
+      aspectRatio: "16:9",
+      chainMode: "pin",
+      mediaUrls: ["/api/files/generated/keyframe.png"],
+    });
+
+    expect(result.warnings).toContain("public-media-url-required");
+  });
+
   it("keeps unknown custom models permissive", () => {
     const result = preflightVideoGeneration({
       modelId: "my-company/video-v9",

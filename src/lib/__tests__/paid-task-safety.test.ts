@@ -204,6 +204,19 @@ describe("两阶段提交：先拿 task ID 再轮询（issue #16 问题2/3）", 
 });
 
 describe("轮询容错：临时查询失败不能丢弃已付费任务（issue #16 问题3/修复4）", () => {
+  it("每次状态查询都会透传模型上下文", async () => {
+    const p = new AtlasCloudProvider(cfg);
+    const statusSpy = vi.spyOn(p, "getTaskStatus").mockResolvedValue({
+      taskId: "task-model-context",
+      status: "completed",
+      result: { taskId: "task-model-context", videoUrls: ["https://example.com/v.mp4"], modelId: "m" },
+    });
+
+    await p.waitForTask("task-model-context", { interval: 1, modelId: "agnes-video-2.5" });
+
+    expect(statusSpy).toHaveBeenCalledWith("task-model-context", { modelId: "agnes-video-2.5" });
+  });
+
   it("状态查询失败 2 次后恢复 → 最终成功返回结果", async () => {
     const p = new AtlasCloudProvider(cfg);
     const statusSpy = vi

@@ -18,6 +18,7 @@ const DEFAULT_BASE: Record<string, string> = {
   alibaba: "https://dashscope.aliyuncs.com/api/v1",
   siliconflow: "https://api.siliconflow.cn/v1",
   openai: "https://api.openai.com/v1",
+  agnes: "https://apihub.agnes-ai.com/v1",
 };
 
 type Probe = { url: string; headers: Record<string, string>; authFirst?: boolean; method?: "GET" | "POST"; body?: string };
@@ -52,6 +53,20 @@ function buildProbe(name: string, apiKey: string, baseUrl?: string): Probe {
       body: JSON.stringify({
         // non-thinking flash tier: a thinking model can burn reasoning tokens even at max_tokens:1
         model: "deepseek-ai/deepseek-v4-flash",
+        messages: [{ role: "user", content: "hi" }],
+        max_tokens: 1,
+      }),
+    };
+  }
+  if (name === "agnes") {
+    // Agnes does not document a read-only account endpoint. Validate endpoint, key,
+    // and model together with the smallest possible OpenAI-compatible completion.
+    return {
+      url: `${base}/chat/completions`,
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      method: "POST",
+      body: JSON.stringify({
+        model: "agnes-2.5-flash",
         messages: [{ role: "user", content: "hi" }],
         max_tokens: 1,
       }),

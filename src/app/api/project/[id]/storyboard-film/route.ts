@@ -15,14 +15,12 @@ import {
   filmRequestSeconds,
   referenceQuotaCheck,
   FILM_MAX_SECONDS,
+  resolveStoryboardFilmModel,
 } from "@/lib/storyboard-film";
-import { toRemoteUsableImage } from "@/lib/remote-image";
+import { toPublicUsableImage, toRemoteUsableImage } from "@/lib/remote-image";
 import { probeMedia } from "@/lib/media-probe";
 import { recordAiTask, updateAiTask } from "@/lib/ai-tasks";
 import { apiError, errText } from "@/lib/api-error";
-
-/** Default model for the one-call film pass — Seedance 2.5 reference-to-video (4-30s, native speech) */
-const DEFAULT_FILM_MODEL = "bytedance/seedance-2.5/reference-to-video";
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|webp|bmp|gif)$/i;
 
@@ -64,6 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       /** Preview only: return the full film prompt + counts + warnings, submit nothing, spend nothing */
       dryRun?: boolean;
     };
+    const filmModel = resolveStoryboardFilmModel(providerName, model);
     if (!scriptId) {
       return apiError(req, "缺少 scriptId", "Missing scriptId", 400);
     }
@@ -107,7 +106,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         shotCount: shots.length,
         seconds: filmRequestSeconds(shots),
         referenceImages: plannedRefs,
-        referenceQuota: referenceQuotaCheck(plannedRefs, model || DEFAULT_FILM_MODEL),
+        referenceQuota: referenceQuotaCheck(plannedRefs, filmModel),
         dialogueWarnings: dialogueDensityWarnings(shots),
       });
     }
@@ -144,7 +143,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const refInputs = [...(characterSheetUrl ? [characterSheetUrl] : []), ...keyframes];
     // pre-spend quota gate: a reference count over the model's schema limit is a guaranteed
     // upstream rejection — block BEFORE the paid submit instead of paying to find out
-    const quota = referenceQuotaCheck(refInputs.length, model || DEFAULT_FILM_MODEL);
+    const quota = referenceQuotaCheck(refInputs.length, filmModel);
     if (!quota.ok) {
       return apiError(
         req,
@@ -153,9 +152,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         400
       );
     }
-    const referenceImageUrls = (await Promise.all(refInputs.map(toRemoteUsableImage))).filter(
-      (u): u is string => !!u
-    );
+    const publicOrigin = process.env.PUBLIC_APP_URL?.trim() || req.nextUrl.origin;
+    const referenceImageUrls = providerName.toLowerCase() === "agnes"
+      ? refInputs.map((ref) => toPublicUsableImage(ref, publicOrigin)).filter((u): u is string => !!u)
+      : (await Promise.all(refInputs.map(toRemoteUsableImage))).filter((u): u is string => !!u);
 
     const prompt = buildStoryboardFilmPrompt(shots, script.characters, { characterSheet: !!characterSheetUrl });
     const duration = filmRequestSeconds(shots);
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const opts = (options ?? {}) as { width?: number; height?: number };
     const videoOptions = {
       ...(options ?? {}),
-      modelId: model || DEFAULT_FILM_MODEL,
+      modelId: filmModel,
       mode: "video-to-video" as const,
       prompt,
       referenceImageUrls,
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // legacy single-phase path for providers without two-phase task support
     if (!provider.submitVideoTask || !provider.waitForTask) {
       const result = await provider.generateVideo(videoOptions);
-      const saved = await persistFilm(id, result.videoUrls?.[0], model || DEFAULT_FILM_MODEL);
+      const saved = await persistFilm(id, result.videoUrls?.[0], filmModel);
       return NextResponse.json({ ...saved, taskId: result.taskId, modelId: result.modelId, seconds: duration, dialogueWarnings });
     }
 
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Phase 2: wait; a lost poll marks the row "unknown" but never drops the paid task
     try {
-      const finalStatus = await provider.waitForTask(taskId, { interval: 5000 });
+      const finalStatus = await provider.waitForTask(taskId, { interval: 5000, modelId });
       const result = finalStatus.result;
       const videoUrl = result && "videoUrls" in result ? result.videoUrls?.[0] : undefined;
       if (!videoUrl) {

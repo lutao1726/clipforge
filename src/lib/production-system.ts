@@ -1,5 +1,6 @@
 import type { GenerationMode } from "@/lib/providers/types";
 import type { QcReport } from "@/lib/video-composer/qc";
+import { randomUuid } from "@/lib/uuid";
 
 export interface CreativeIntent {
   subject: string;
@@ -87,7 +88,7 @@ export function sanitizeProjectMediaInsight(value: unknown): ProjectMediaInsight
   const summary = clean(raw.summary, 600);
   if (!mediaType || !summary) return null;
   return {
-    id: clean(raw.id, 80) || crypto.randomUUID(),
+      id: clean(raw.id, 80) || randomUuid(),
     mediaType,
     summary,
     tags: cleanList(raw.tags),

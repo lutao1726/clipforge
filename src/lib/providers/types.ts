@@ -235,7 +235,7 @@ export interface AIProvider {
    * @param taskId Task ID
    * @returns Task status information
    */
-  getTaskStatus(taskId: string): Promise<TaskStatus>
+  getTaskStatus(taskId: string, context?: { modelId?: string }): Promise<TaskStatus>
 
   /**
    * Submit a video generation task WITHOUT waiting for the result (two-phase mode).
@@ -252,7 +252,7 @@ export interface AIProvider {
    * Transient status-query failures are tolerated instead of aborting — only a
    * definitive terminal state (or persistent query failure) ends the wait.
    */
-  waitForTask?(taskId: string, options?: { interval?: number; maxAttempts?: number }): Promise<TaskStatus>
+  waitForTask?(taskId: string, options?: { interval?: number; maxAttempts?: number; modelId?: string }): Promise<TaskStatus>
 
   /**
    * Upload a local media file to the provider's temporary hosting and return a

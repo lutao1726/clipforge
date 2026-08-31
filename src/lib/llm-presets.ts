@@ -30,6 +30,7 @@ export const LLM_PRESETS: LLMPreset[] = [
   { label: "MiniMax", baseUrl: "https://api.minimax.chat/v1", model: "MiniMax-M2.7", tipKey: "presetMinimaxTip" },
   { label: "豆包", baseUrl: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-seed-2-0-pro-260215", tipKey: "presetDoubaoTip" },
   { label: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-5.4" },
+  { label: "Agnes AI", baseUrl: "https://apihub.agnes-ai.com/v1", model: "agnes-2.5-flash", tipKey: "presetAgnesTip" },
   // 127.0.0.1 rather than localhost: on Windows, localhost resolves to ::1 first while Ollama binds
   // 127.0.0.1 only, so the hostname form can fail to connect for reasons the user cannot see.
   // The model must match a pulled tag exactly — `ollama pull qwen2.5` installs exactly this id.

@@ -5,6 +5,7 @@ import {
   filmTotalSeconds,
   filmRequestSeconds,
   FILM_MAX_SECONDS,
+  resolveStoryboardFilmModel,
 } from "@/lib/storyboard-film";
 import type { Shot, ScriptCharacter } from "@/lib/db/schema";
 
@@ -42,6 +43,18 @@ describe("时长计算", () => {
     expect(
       filmRequestSeconds([mkShot({ shotId: 1, duration: 45 })])
     ).toBe(FILM_MAX_SECONDS);
+  });
+});
+
+describe("整片模型解析", () => {
+  it("Agnes 使用扁平的 Video 2.5 模型，不转发 Seedance reference-to-video id", () => {
+    expect(resolveStoryboardFilmModel("agnes", "bytedance/seedance-2.5/reference-to-video")).toBe("agnes-video-2.5");
+    expect(resolveStoryboardFilmModel("Agnes", "")).toBe("agnes-video-2.5");
+  });
+
+  it("其他平台保留显式 reference-to-video 模型并沿用 Seedance 默认", () => {
+    expect(resolveStoryboardFilmModel("atlas", "foo/bar/reference-to-video")).toBe("foo/bar/reference-to-video");
+    expect(resolveStoryboardFilmModel("atlas", "foo/bar/text-to-video")).toBe("bytedance/seedance-2.5/reference-to-video");
   });
 });
 

@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLocale, useT } from "@/lib/i18n";
 import { buildSrt, buildVtt } from "@/lib/subtitle-export";
+import { randomUuid } from "@/lib/uuid";
 import { TRANSCRIPT_EDIT_FORMAT, type TranscriptEditActor, type TranscriptEditProposal, type TranscriptEditSummary } from "@/lib/transcript-edit-protocol";
 import {
   LOCAL_ASR_MODELS,
@@ -529,7 +530,7 @@ export default function TranscriptPage() {
     if (format === "json") {
       downloadText(`${stem}.json`, "application/json", JSON.stringify({
         format: TRANSCRIPT_EDIT_FORMAT,
-        operationId: crypto.randomUUID(),
+        operationId: randomUuid(),
         actor: "human",
         projectId: id,
         mediaId: selected.id,
@@ -581,7 +582,7 @@ export default function TranscriptPage() {
       const response = await fetch(`/api/project/${id}/media/${selected.id}/edit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept-Language": locale },
-        body: JSON.stringify({ action: "preview", operationId: crypto.randomUUID(), actor: "human", baseRevision: latestRevision, plan }),
+        body: JSON.stringify({ action: "preview", operationId: randomUuid(), actor: "human", baseRevision: latestRevision, plan }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || t("renderFailed"));

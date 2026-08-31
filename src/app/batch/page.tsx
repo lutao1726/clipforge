@@ -21,6 +21,7 @@ import { useSettingsStore } from "@/lib/stores/settings-store";
 import { getExampleProducts } from "@/lib/examples";
 import { buildVariationPlan, describeSlot } from "@/lib/variation-plan";
 import { useT, useLocale } from "@/lib/i18n";
+import { randomUuid } from "@/lib/uuid";
 
 // Video mode options (labelKey refers to a batch-namespace i18n key; resolved at render time)
 const videoModeOptions = [
@@ -129,7 +130,7 @@ export default function BatchPage() {
     getExampleProducts(locale).forEach((ex) => {
       if (existing.has(ex.name)) return;
       addProduct({
-        id: crypto.randomUUID(),
+          id: randomUuid(),
         name: ex.name,
         category: ex.category,
         description: ex.sellingPoints,

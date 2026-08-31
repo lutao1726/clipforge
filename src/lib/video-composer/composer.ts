@@ -452,7 +452,7 @@ interface ComposeGraph {
 
 // Assemble the ffmpeg composition graph (inputs / filtergraph / stream labels / duration) once;
 // buildComposeCommand renders it as a shell string (tests/debug) and buildComposeInvocation renders it
-// as shell-free argv + a -filter_complex_script payload (actual execution).
+// as shell-free argv + a -/filter_complex file payload (actual execution).
 function assembleComposeGraph(config: ComposeConfig): ComposeGraph {
   // empty clips would cause the subsequent -map "[v0]" to reference a stream that was never created, producing a cryptic ffmpeg error; fail early with a readable message instead
   if (!config.clips || config.clips.length === 0) {
@@ -814,7 +814,7 @@ function assembleComposeGraph(config: ComposeConfig): ComposeGraph {
 
 /**
  * Convert the pre-shell-escaped filtergraph (built for an inline, double-quoted -filter_complex argument)
- * into the form ffmpeg reads directly from a -filter_complex_script file. The only shell transform our
+ * into the form ffmpeg reads directly from a -/filter_complex file. The only shell transform our
  * filtergraph relies on is POSIX double-quote backslash-halving (\\ -> \): escapeDrawText deliberately
  * doubles backslashes expecting the shell to halve them. Reading from a file (or passing via execFile)
  * skips the shell, so we apply that halving ourselves. escapeSubtitlesPath emits single backslashes
@@ -859,11 +859,11 @@ export function buildComposeCommand(config: ComposeConfig): string {
   return cmd;
 }
 
-/** Shell-free ffmpeg invocation: raw argv + a filtergraph in ffmpeg-direct form (fed via -filter_complex_script). */
+/** Shell-free ffmpeg invocation: raw argv + a filtergraph in ffmpeg-direct form (fed via -/filter_complex). */
 export interface ComposeInvocation {
   /** ["-y", ...inputs] — raw paths, no shell quoting */
   inputArgs: string[];
-  /** filtergraph in ffmpeg-direct form (shell backslash-halving already applied); write to a file for -filter_complex_script */
+  /** filtergraph in ffmpeg-direct form (shell backslash-halving already applied); write to a file for -/filter_complex */
   filterComplex: string;
   /** maps + encode + metadata + -t + output path (the filter flag is spliced in by the caller) */
   outputArgs: string[];
@@ -872,7 +872,7 @@ export interface ComposeInvocation {
 
 /**
  * Build a shell-free ffmpeg invocation. The giant, newline-laden filtergraph is returned separately so the
- * caller can write it to a file and pass it via -filter_complex_script; together with execFile (no shell)
+ * caller can write it to a file and pass it via -/filter_complex; together with execFile (no shell)
  * this sidesteps cmd.exe's 8191-char command-line cap, its embedded-newline breakage, and its backslash
  * mangling of Windows paths — all of which made every compose fail on Windows (issue #13) while working on
  * macOS/Linux.
@@ -929,7 +929,7 @@ export async function composeVideo(config: ComposeConfig): Promise<string> {
 
   const inv = buildComposeInvocation(config);
 
-  // Write the (large, newline-laden) filtergraph to a script file and pass it via -filter_complex_script.
+  // Write the (large, newline-laden) filtergraph to a script file and pass it via FFmpeg 9's -/filter_complex.
   // Combined with execFile (no shell) this is the crux of the Windows fix (issue #13): a real 6-shot compose
   // command is ~12k chars with ~23 embedded newlines, and running it through cmd.exe (as child_process.exec
   // does on Windows) blew past its 8191-char command-line cap and choked on the newlines, so every final
@@ -937,7 +937,7 @@ export async function composeVideo(config: ComposeConfig): Promise<string> {
   // cap, no quoting/backslash issues) and the script file keeps the argv small regardless of project size.
   const filterFile = join(outputDir, `filter_${Date.now()}.txt`);
   await writeFile(filterFile, inv.filterComplex, "utf8");
-  const args = [...inv.inputArgs, "-filter_complex_script", filterFile, ...inv.outputArgs];
+  const args = [...inv.inputArgs, "-/filter_complex", filterFile, ...inv.outputArgs];
 
   const { execFile } = await import("child_process");
   const { promisify } = await import("util");

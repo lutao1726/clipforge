@@ -7,12 +7,12 @@ import type { TaskStatusEnum } from "@/lib/providers/types";
 
 // Query / resume a previously submitted video task by its provider task ID (issue #16).
 // POST because the request carries the API key — keys must never appear in URLs.
-// body: { provider, apiKey, baseUrl?, taskId, wait? }
+// body: { provider, apiKey, baseUrl?, taskId, model?, wait? }
 //   wait=false (default): single status check
 //   wait=true: block until the task reaches a terminal state (resume flow)
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { provider: providerName, apiKey, baseUrl, taskId, wait } = body;
+  const { provider: providerName, apiKey, baseUrl, taskId, model, wait } = body;
 
   if (!providerName || !taskId) {
     return apiError(req, "缺少必要参数（provider / taskId）", "Missing required parameters (provider / taskId)");
@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
 
     try {
       const status = wait && provider.waitForTask
-        ? await provider.waitForTask(taskId, { interval: 5000 })
-        : await provider.getTaskStatus(taskId);
+        ? await provider.waitForTask(taskId, { interval: 5000, modelId: model })
+        : await provider.getTaskStatus(taskId, { modelId: model });
 
       const result = status.result;
       const videoUrls = result && "videoUrls" in result ? result.videoUrls : undefined;

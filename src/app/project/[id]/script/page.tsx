@@ -22,6 +22,8 @@ import { useT, useLocale } from "@/lib/i18n";
 import { STAGE_LABEL_KEYS } from "@/lib/pipeline-stages";
 import { friendlyError } from "@/lib/friendly-error";
 import { ProjectHeader } from "@/components/project-header";
+import { resolveStoryboardFilmModel } from "@/lib/storyboard-film";
+import { randomUuid } from "@/lib/uuid";
 
 // shot type labels (label changed to i18n key, resolved per locale at render time)
 const shotTypeLabels: Record<Shot["type"], { labelKey: string; color: string }> = {
@@ -279,7 +281,7 @@ export default function ScriptPage() {
   const doSaveTemplate = () => {
     if (!templateName.trim() || !currentScript) return;
     addTemplate({
-      id: crypto.randomUUID(),
+      id: randomUuid(),
       name: templateName.trim(),
       styleType: currentScript.styleType,
       shots: currentScript.shots as Shot[],
@@ -637,9 +639,7 @@ export default function ScriptPage() {
         body: JSON.stringify({
           scriptId: currentScript.id,
           provider: vidTarget.provider,
-          model: vidTarget.model.includes("/reference-to-video")
-            ? vidTarget.model
-            : "bytedance/seedance-2.5/reference-to-video",
+          model: resolveStoryboardFilmModel(vidTarget.provider, vidTarget.model),
           apiKey: vidTarget.apiKey,
           baseUrl: vidTarget.baseUrl,
           ...(sheet && { characterSheetUrl: sheet }),

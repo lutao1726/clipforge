@@ -40,6 +40,8 @@ export const settings: NamespaceMessages = {
     providerSiliconflowTip: "国产高性价比推理平台",
     providerOpenaiDesc: "OpenAI 官方平台，支持 gpt-image-2、gpt-image-1.5 图片生成与图生图编辑",
     providerOpenaiTip: "2026 旗舰 gpt-image-2，9:16 竖屏直出 + 商品保真图生图（暂不支持视频）",
+    providerAgnesDesc: "Agnes AI 多模态生成平台，支持图片与带原生音频的视频模型",
+    providerAgnesTip: "Image 2.1 Flash + Video 2.5，视频参考素材需使用公网 URL",
 
     // AI 平台卡片
     providerEnabled: "已启用",
@@ -57,6 +59,7 @@ export const settings: NamespaceMessages = {
     presetDoubaoTip: "Seed 2.0 对标 GPT-5.2",
     presetOllamaTip: "本地离线·免费，需先 ollama pull qwen2.5",
     presetPollinationsTip: "注册领每日免费额度，需填 Key",
+    presetAgnesTip: "Agnes 2.5 Flash，兼容 OpenAI Chat Completions",
     llmBaseUrlLabel: "API 地址（baseUrl）",
     providerBaseUrlLabel: "自定义接入点 baseUrl（选填）",
     providerBaseUrlPlaceholder: "留空走平台默认；可填代理/自建端点",
@@ -234,6 +237,8 @@ export const settings: NamespaceMessages = {
     providerSiliconflowTip: "Cost-effective domestic inference platform",
     providerOpenaiDesc: "OpenAI's official platform — gpt-image-2 and gpt-image-1.5 image generation and editing",
     providerOpenaiTip: "2026 flagship gpt-image-2: native 9:16 + product-faithful editing (no video yet)",
+    providerAgnesDesc: "Agnes AI multimodal generation platform for images and native-audio video",
+    providerAgnesTip: "Image 2.1 Flash + Video 2.5; video reference media must use public URLs",
 
     // AI platform card
     providerEnabled: "Enabled",
@@ -251,6 +256,7 @@ export const settings: NamespaceMessages = {
     presetDoubaoTip: "Seed 2.0, on par with GPT-5.2",
     presetOllamaTip: "Local & offline, free — run `ollama pull qwen2.5` first",
     presetPollinationsTip: "Free daily credit after signup — key required",
+    presetAgnesTip: "Agnes 2.5 Flash via OpenAI-compatible Chat Completions",
     llmBaseUrlLabel: "API base URL (baseUrl)",
     providerBaseUrlLabel: "Custom endpoint baseUrl (optional)",
     providerBaseUrlPlaceholder: "Leave empty for platform default; or set a proxy/self-hosted endpoint",

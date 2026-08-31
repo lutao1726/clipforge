@@ -17,6 +17,7 @@ export function ModelCapabilityPreflight(props: {
   audioEnabled?: boolean;
   referenceImageCount?: number;
   referenceAudioCount?: number;
+  mediaUrls?: string[];
 }) {
   const t = useT("assets");
   const result = useMemo(() => preflightVideoGeneration(props), [props]);

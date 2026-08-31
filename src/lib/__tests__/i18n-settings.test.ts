@@ -18,6 +18,14 @@ describe("settings i18n 厂商名/错误无中文泄漏（审计修复）", () =
     }
   });
 
+  it("Agnes 平台与 LLM 预设文案在 zh/en 都存在", () => {
+    for (const k of ["providerAgnesDesc", "providerAgnesTip", "presetAgnesTip"]) {
+      expect(zh[k]).toBeTruthy();
+      expect(en[k]).toBeTruthy();
+      expect(/[一-鿿]/.test(en[k])).toBe(false);
+    }
+  });
+
   it("en 厂商名是英文品牌、不含中文（否则英文用户仍见中文）", () => {
     expect(en.providerVolcengineName).toBe("Volcengine");
     expect(en.providerAlibabaName).toBe("Alibaba Bailian");

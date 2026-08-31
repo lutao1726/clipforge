@@ -55,7 +55,7 @@ export abstract class BaseProvider implements AIProvider {
 
   abstract generateImage(options: ImageOptions): Promise<ImageResult>
   abstract generateVideo(options: VideoOptions): Promise<VideoResult>
-  abstract getTaskStatus(taskId: string): Promise<TaskStatus>
+  abstract getTaskStatus(taskId: string, context?: { modelId?: string }): Promise<TaskStatus>
   abstract listModels(mediaType?: MediaType): Promise<Model[]>
 
   // ==================== common utility methods ====================
@@ -195,6 +195,8 @@ export abstract class BaseProvider implements AIProvider {
       maxAttempts?: number
       /** Max consecutive status-query failures tolerated before giving up, default 5 */
       maxConsecutiveErrors?: number
+      /** Provider model identifier required by status APIs that route by model */
+      modelId?: string
       /** Terminal state check; defaults to checking for completed/failed/cancelled */
       isTerminal?: (status: TaskStatusEnum) => boolean
     } = {}
@@ -203,6 +205,7 @@ export abstract class BaseProvider implements AIProvider {
       interval = 3000,
       maxAttempts = 200,
       maxConsecutiveErrors = 5,
+      modelId,
       isTerminal = (s) => ['completed', 'failed', 'cancelled'].includes(s),
     } = options
 
@@ -213,7 +216,7 @@ export abstract class BaseProvider implements AIProvider {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       let status: TaskStatus
       try {
-        status = await this.getTaskStatus(taskId)
+        status = await this.getTaskStatus(taskId, { modelId })
         consecutiveErrors = 0
       } catch (error) {
         consecutiveErrors++
@@ -263,7 +266,7 @@ export abstract class BaseProvider implements AIProvider {
    */
   async waitForTask(
     taskId: string,
-    options: { interval?: number; maxAttempts?: number } = {}
+    options: { interval?: number; maxAttempts?: number; modelId?: string } = {}
   ): Promise<TaskStatus> {
     return this.pollTaskStatus(taskId, options)
   }

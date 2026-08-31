@@ -72,7 +72,24 @@ export interface VideoGenerationPreflight {
     | "reference-images-trimmed"
     | "reference-conditioning-unavailable"
     | "reference-audio-unavailable"
+    | "public-media-url-required"
   >;
+}
+
+function isClearlyPublicHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (host === "localhost" || host === "::1" || host.endsWith(".local")) return false;
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return false;
+    const private172 = /^172\.(\d{1,3})\./.exec(host);
+    if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return false;
+    if (/^(?:fc|fd)[0-9a-f]{2}:/i.test(host)) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function referenceSibling(modelId: string): string | undefined {
@@ -117,8 +134,35 @@ function inferredModes(modelId: string): Pick<VideoModelCapabilities, "textToVid
   };
 }
 
+function agnesCapabilities(modelId: string, provider?: string): VideoModelCapabilities | undefined {
+  const isAgnes = provider === "agnes" || /^agnes-video-2\.5(?:-flash)?$/i.test(modelId);
+  if (!isAgnes) return undefined;
+  const flash = /-flash$/i.test(modelId);
+  return {
+    confidence: "known",
+    textToVideo: true,
+    imageToVideo: true,
+    referenceImages: true,
+    referenceVideo: !flash,
+    referenceAudio: true,
+    lastFrame: true,
+    nativeAudio: true,
+    videoEdit: false,
+    temporalRetake: false,
+    regionMask: false,
+    multiKeyframes: false,
+    performanceReference: !flash,
+    durationValues: [4, 5, 6, 7, 8, 9, 10, 11, 12],
+    resolutionValues: ["720p"],
+    aspectRatioValues: ["9:16", "16:9", "1:1"],
+    ...(flash && { maxReferenceImages: 5 }),
+  };
+}
+
 /** Normalize provider-specific video metadata into one UI-facing capability contract. */
 export function getVideoModelCapabilities(modelId: string, supportsAudio?: boolean, provider?: string): VideoModelCapabilities {
+  const agnes = agnesCapabilities(modelId, provider);
+  if (agnes) return agnes;
   const spec = getVideoParamSpec(modelId);
   const modes = inferredModes(modelId);
   const references = referenceCapabilities(modelId, provider);
@@ -168,11 +212,34 @@ export function preflightVideoGeneration(input: {
   audioEnabled?: boolean;
   referenceImageCount?: number;
   referenceAudioCount?: number;
+  mediaUrls?: string[];
 }): VideoGenerationPreflight {
   const capabilities = getVideoModelCapabilities(input.modelId, input.supportsAudio, input.provider);
   const spec = getVideoParamSpec(input.modelId);
   const adjustments: PreflightAdjustment[] = [];
   const warnings: VideoGenerationPreflight["warnings"] = [];
+
+  const agnes = agnesCapabilities(input.modelId, input.provider);
+  if (agnes) {
+    if (input.duration != null) {
+      const effective = Math.max(4, Math.min(12, Math.round(input.duration)));
+      if (effective !== input.duration) {
+        adjustments.push({ field: "duration", requested: input.duration, effective, code: "nearest-duration" });
+      }
+    }
+    if (input.resolution !== "720p") {
+      adjustments.push({ field: "resolution", requested: input.resolution, effective: "720p", code: "mapped-resolution" });
+    }
+    if ((input.referenceImageCount ?? 0) > 0 && agnes.referenceImages === false) warnings.push("reference-conditioning-unavailable");
+    if ((input.referenceAudioCount ?? 0) > 0 && agnes.referenceAudio === false) warnings.push("reference-audio-unavailable");
+    if (agnes.maxReferenceImages != null && (input.referenceImageCount ?? 0) > agnes.maxReferenceImages) {
+      warnings.push("reference-images-trimmed");
+    }
+    if (input.mediaUrls?.some((url) => !isClearlyPublicHttpUrl(url))) {
+      warnings.push("public-media-url-required");
+    }
+    return { capabilities, adjustments, warnings };
+  }
 
   if (!spec) {
     if (capabilities.confidence === "unknown") warnings.push("capabilities-unknown");

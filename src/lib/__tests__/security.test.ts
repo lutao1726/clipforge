@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveUploadFilePath } from "@/lib/remote-image";
+import { resolveUploadFilePath, toPublicUsableImage } from "@/lib/remote-image";
 import { escapeSsml } from "@/lib/edge-tts";
 
 // ==================== path traversal protection (toRemoteUsableImage in /api/ai/image|video) ====================
@@ -21,6 +21,20 @@ describe("resolveUploadFilePath 路径穿越防护", () => {
   it("非 /api/files 路径返回 null（交由调用方原样透传）", () => {
     expect(resolveUploadFilePath("https://example.com/x.png")).toBeNull();
     expect(resolveUploadFilePath("random-string")).toBeNull();
+  });
+});
+
+describe("toPublicUsableImage 公网代理地址", () => {
+  it("把本地上传路由映射到公网 origin，供不接受 Data URI 的视频平台读取", () => {
+    expect(toPublicUsableImage("/api/files/p/demo.png", "https://ai.example.test/")).toBe(
+      "https://ai.example.test/api/files/p/demo.png"
+    );
+  });
+
+  it("已有公网 URL、Data URI 和无 origin 时保持原值", () => {
+    expect(toPublicUsableImage("https://cdn.example.test/a.png", "https://ai.example.test")).toBe("https://cdn.example.test/a.png");
+    expect(toPublicUsableImage("data:image/png;base64,abc", "https://ai.example.test")).toBe("data:image/png;base64,abc");
+    expect(toPublicUsableImage("/api/files/p/demo.png", undefined)).toBe("/api/files/p/demo.png");
   });
 });
 

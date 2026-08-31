@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createProvider } from "@/lib/providers";
 import { ProviderError } from "@/lib/providers/base";
-import { toRemoteUsableImage, resolveUploadFilePath } from "@/lib/remote-image";
+import { toPublicUsableImage, toRemoteUsableImage, resolveUploadFilePath } from "@/lib/remote-image";
 import { apiError, errText } from "@/lib/api-error";
 import { recordAiTask, updateAiTask } from "@/lib/ai-tasks";
 import { sanitizeGenerationControlSummary } from "@/lib/video-repair-plan";
@@ -27,11 +27,19 @@ export async function POST(req: NextRequest) {
 
   try {
     const provider = createProvider({ name: providerName, apiKey, baseUrl });
+    const isAgnes = String(providerName).toLowerCase() === "agnes";
+    const publicOrigin = process.env.PUBLIC_APP_URL?.trim() || req.nextUrl.origin;
 
-    const firstFrameUrl = await toRemoteUsableImage(imageUrl);
+    const firstFrameUrl = isAgnes
+      ? toPublicUsableImage(imageUrl, publicOrigin)
+      : await toRemoteUsableImage(imageUrl);
     // Keyframe chaining: pin the clip's last frame to the next
     // shot's keyframe so the transition is generated inside the clip (seamless on hard concat)
-    const lastFrameUrl = lastImageUrl ? await toRemoteUsableImage(lastImageUrl) : undefined;
+    const lastFrameUrl = lastImageUrl
+      ? isAgnes
+        ? toPublicUsableImage(lastImageUrl, publicOrigin)
+        : await toRemoteUsableImage(lastImageUrl)
+      : undefined;
 
     // Reference-to-video inputs (viral replication): reference IMAGES may travel as Base64
     // like first frames, but reference VIDEOS must be real URLs — local /api/files paths
@@ -56,9 +64,9 @@ export async function POST(req: NextRequest) {
     }
     if (Array.isArray(referenceImageUrls) && referenceImageUrls.length > 0) {
       const imageRefs = (referenceImageUrls as unknown[]).filter((ref): ref is string => typeof ref === "string" && Boolean(ref)).slice(0, 9);
-      refImages = (await Promise.all(imageRefs.map(toRemoteUsableImage))).filter(
-        (u): u is string => !!u
-      );
+      refImages = isAgnes
+        ? imageRefs.map((ref) => toPublicUsableImage(ref, publicOrigin)).filter((u): u is string => !!u)
+        : (await Promise.all(imageRefs.map(toRemoteUsableImage))).filter((u): u is string => !!u);
     }
     if (Array.isArray(referenceAudioUrls) && referenceAudioUrls.length > 0) {
       refAudios = [];
@@ -115,7 +123,7 @@ export async function POST(req: NextRequest) {
     // Phase 2: wait. Transient status-query failures are tolerated inside waitForTask;
     // if it still fails, the task is marked "unknown"/"failed" but never dropped.
     try {
-      const finalStatus = await provider.waitForTask(taskId, { interval: 5000 });
+      const finalStatus = await provider.waitForTask(taskId, { interval: 5000, modelId });
       const result = finalStatus.result;
       const videoUrls = result && "videoUrls" in result ? result.videoUrls : undefined;
       if (!videoUrls || videoUrls.length === 0) {
